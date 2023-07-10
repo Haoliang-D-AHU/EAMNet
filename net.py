@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-class SELayer(nn.Module):
+class AttentionLayer(nn.Module):
     def __init__(self,in_channel,reduction): # reduction 减少
-        super(SELayer, self).__init__()
+        super(AttentionLayer, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d((1,1))
         self.fc = nn.Sequential(
             nn.Linear(in_channel,in_channel // reduction),
@@ -59,7 +59,7 @@ class BottleNeck(nn.Module):
             nn.Conv2d(middle_channels, middle_channels * BottleNeck.expansion, kernel_size=1, bias=False),
             nn.BatchNorm2d(middle_channels * BottleNeck.expansion),
         )
-        self.se=SELayer(BottleNeck.expansion*middle_channels,16)
+        self.se=AttentionLayer(BottleNeck.expansion*middle_channels,16)
         self.shortcut = nn.Sequential()
 
         if stride != 1 or in_channels != middle_channels * BottleNeck.expansion:
@@ -75,7 +75,7 @@ class BottleNeck(nn.Module):
         #print(x1.shape,'残差后x1！')
         x1=self.se(x1)
         #print(x1.shape,'se后x1！')
-        print(x1.shape)
+        #print(x1.shape)
         return nn.ReLU(inplace=True)(x1 + self.shortcut(x))
             
 
@@ -100,7 +100,7 @@ class VGGBlock(nn.Module):
     
     
     
-class U_SeResnet(nn.Module):
+class EAMNet(nn.Module):
     def __init__(self, block, layers, num_classes, input_channels=3):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
@@ -145,23 +145,23 @@ class U_SeResnet(nn.Module):
 
 
     def forward(self, input):
-        print(input.shape)
+        #print(input.shape)
         x0_0 = self.conv0_0(input)
-        print(x0_0.shape)
+        #print(x0_0.shape)
         x1_0 = self.conv1_0(self.pool(x0_0))
-        print(x1_0.shape)
+        #print(x1_0.shape)
         x2_0 = self.conv2_0(self.pool(x1_0))
-        print(x2_0.shape)
+        #print(x2_0.shape)
         x3_0 = self.conv3_0(self.pool(x2_0))
-        print(x3_0.shape)
+        #print(x3_0.shape)
         x4_0 = self.conv4_0(self.pool(x3_0))
         #print(x4_0.shape)
-        print((torch.cat([x3_0, self.up(x4_0)], 1)).shape)
+        #print((torch.cat([x3_0, self.up(x4_0)], 1)).shape)
 
         x3_1 = self.conv3_1(torch.cat([x3_0, self.up(x4_0)], 1))
-        print(x3_1.shape)
+        #print(x3_1.shape)
         x2_2 = self.conv2_2(torch.cat([x2_0, self.up(x3_1)], 1))
-        print(x2_2.shape)
+        #print(x2_2.shape)
         # x1_3 = self.conv1_3(torch.cat([x1_0, self.up(x2_2)], 1))
         # x0_4 = self.conv0_4(torch.cat([x0_0, self.up(x1_3)], 1))
         output = self.avg_pool(x2_2)
@@ -171,7 +171,7 @@ class U_SeResnet(nn.Module):
 
         return output
 
-if __name__ == '__main__':
-    net=U_SeResnet(block=BottleNeck,layers=[3,4,6,3],num_classes=3)
-    x = torch.rand((1, 3, 224, 224))
-    print(net.forward(x).shape)
+# if __name__ == '__main__':
+#     net=EAMNet(block=BottleNeck,layers=[3,4,6,3],num_classes=3)
+#     x = torch.rand((1, 3, 224, 224))
+#     print(net.forward(x).shape)
