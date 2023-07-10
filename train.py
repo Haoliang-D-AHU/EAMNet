@@ -3,7 +3,7 @@ import sys
 import argparse
 import logging
 from torch.utils.tensorboard import SummaryWriter
-from net import BottleNeck,U_SeResnet
+from net import BottleNeck,EAMNet
 import torch
 from torchvision import transforms
 import torch.optim as optim
@@ -16,14 +16,14 @@ import json
 import torch.backends.cudnn as cudnn
 import torch.optim.lr_scheduler as lr_scheduler
 from data_split2 import data_set_split
-# 参考 https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/examples/imagenet/main.py
+
 parser = argparse.ArgumentParser(description='Training with pytorch')
 parser.add_argument("--dataset_type",default='My_data',type=str,help='type of dataset')
 parser.add_argument("--root_datasets",default=r"/root/autodl-nas/raw_image",help='Dataset directory path')
 parser.add_argument("--target_data_folder",default=r"/root/autodl-nas/prosessed_image",help='Dataset directory path')
-'''这个不懂'''
+
 parser.add_argument('--balance_data', action='store_true',help="Balance training data by down-sampling more frequent labels.")
-parser.add_argument('--net', default="U_SeResnet",help="The network architecture, it can be resnet18, resnet50,or resnet152.")
+parser.add_argument('--net', default="EAMNet")
 parser.add_argument('--lr', '--learning-rate', default=0.001, type=float, # 5e-4
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float,
@@ -114,7 +114,7 @@ def class2json(train_dataset):
 def main():
     args = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
-    # 加了这句话，会让种子失效
+    
     if torch.cuda.is_available() and args.use_cuda:
         torch.backends.cudnn.benchmark = True
     if args.seed is not None:
@@ -127,13 +127,12 @@ def main():
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
 
-        '''设置 torch.backends.cudnn.benchmark=True 将会让程序在开始时花费一点额外时间，
-        为整个网络的每个卷积层搜索最适合它的卷积实现算法，进而实现网络的加速。'''
+        
         logging.info("Use Cuda.")
-    logging.info(args) # 打印你的args
+    logging.info(args) 
     tb_writer = SummaryWriter()
     if args.net == 'U_SeResnet':
-        create_net = U_SeResnet(block=BottleNeck,layers=[3,4,6,3],num_classes=3).to(device)
+        create_net = EAMNet(block=BottleNeck,layers=[3,4,6,3],num_classes=3).to(device)
 
     transform = {
         "train": transforms.Compose([
